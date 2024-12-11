@@ -5,4 +5,5 @@ Written for bash
 To use, run
 
 chmod +x appimage_integrator
+
 appimage_integrator [your .AppImage file]
