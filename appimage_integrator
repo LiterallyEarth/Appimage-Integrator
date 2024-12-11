@@ -1,0 +1,89 @@
+#!/bin/bash
+#this script integrates an AppImage file to the system by extracting icon and creating a .desktop file based on the
+#included .desktop if found
+
+filename=$1
+#Check if input file is an AppImage
+#if [ "$filename##*." != "AppImage" ]; then
+#  echo "Input file is not an AppImage, or is named incorrectly"
+#  echo "Quitting"
+#  exit 1
+#fi
+
+chmod +x $filename
+
+#AppImage working dir
+awd=$(pwd)
+
+#Making icon dir
+icond=$awd/appimage_icons
+mkdir -p $icond
+
+echo ""
+echo "Extracting appimage..."
+./$filename --appimage-extract > /dev/null 2>&1
+#Fetch icon filename and icon
+cd squashfs-root
+
+echo "Finding AppImage's icon..."
+#Finding icon assuming it's a symbolic link
+icon=$(find -L . -maxdepth 1 -xtype l \( -iname \*.svg -o -iname \*.png \) | sed 's|^./||')
+#Checking if $icon is an empty variable because we didn't find anything
+if [ -z "$icon" ]
+then
+ #we didn't find anything, so we search for a normal file
+ icon=$(find . -maxdepth 1 -xtype f \( -iname \*.svg -o -iname \*.png \) | sed 's|^./||')
+fi
+#If we still haven't found an icon, we skip the copying
+if [ -z "$icon" ]
+then
+	echo "   Couldn't find any icons - will not create one"
+	icon=""
+else
+	echo "   Found icon $icon"
+	if [[ -L "$icon" ]]
+	then
+	 #echo "icon was a symbolic link"
+	 cp -H $icon $icond/
+	else
+	 #echo "icon was not a symbolic link"
+	 cp $icon $icond/
+	fi
+fi
+
+#location of .desktop files (for user)
+dotdesktopdir=~/.local/share/applications/
+
+#finding the AppImage's .desktop file
+echo "Finding the AppImage's .desktop file..."
+adotdesktop=$(find . -maxdepth 1 -type f -name "*.desktop" | sed 's|^./||')
+
+if [ -z "$adotdesktop" ]
+then
+	echo "   Could not find a .desktop file. Will make a generic one"
+	modname=$(basename $filename .AppImage)
+echo "[Desktop Entry]
+Name=$modname
+Comment=$modname
+Exec=$awd/$filename %U
+Icon=$icond/$icon
+Terminal=false
+Type=Application" > $dotdesktopdir/$filename.desktop
+	echo "   .desktop created, and placed in $dotdesktopdir $filename"
+else
+	echo "   Found a .desktop file. Will modify it."
+	#replacing the relevant lines of the .desktop
+	execline="$awd/$filename %U"
+	sed -i "/Exec=/c\Exec=$execline" $adotdesktop
+	iconline="$icond/$icon"
+	sed -i "/Icon=/c\Icon=$iconline" $adotdesktop
+
+	cp $adotdesktop $dotdesktopdir
+	echo "   .desktop created, and placed in $dotdesktopdir$adotdesktop"
+fi
+
+echo "Deleting temporary squashfs-root..."
+cd ..
+rm -rf squashfs-root
+
+echo "Integration complete!"
