@@ -4,11 +4,11 @@
 
 filename=$1
 #Check if input file is an AppImage
-#if [ "$filename##*." != "AppImage" ]; then
-#  echo "Input file is not an AppImage, or is named incorrectly"
-#  echo "Quitting"
-#  exit 1
-#fi
+if [ "${filename: -9}" != ".AppImage" ]; then
+  echo "Input file is not an AppImage, or is named incorrectly"
+  echo "Quitting"
+  exit 1
+fi
 
 chmod +x $filename
 
@@ -21,9 +21,9 @@ mkdir -p $icond
 
 echo ""
 echo "Extracting appimage..."
-./$filename --appimage-extract > /dev/null 2>&1
+$filename --appimage-extract > /dev/null 2>&1
 #Fetch icon filename and icon
-cd squashfs-root
+cd ./squashfs-root
 
 echo "Finding AppImage's icon..."
 #Finding icon assuming it's a symbolic link
@@ -65,7 +65,7 @@ then
 echo "[Desktop Entry]
 Name=$modname
 Comment=$modname
-Exec=$awd/$filename %U
+Exec=$filename %U
 Icon=$icond/$icon
 Terminal=false
 Type=Application" > $dotdesktopdir/$filename.desktop
@@ -73,12 +73,13 @@ Type=Application" > $dotdesktopdir/$filename.desktop
 else
 	echo "   Found a .desktop file. Will modify it."
 	#replacing the relevant lines of the .desktop
-	execline="$awd/$filename %U"
+	execline="$filename %U"
 	sed -i "/Exec=/c\Exec=$execline" $adotdesktop
 	iconline="$icond/$icon"
 	sed -i "/Icon=/c\Icon=$iconline" $adotdesktop
 
 	cp $adotdesktop $dotdesktopdir
+    chmod +x $dotdesktopdir$adotdesktop
 	echo "   .desktop created, and placed in $dotdesktopdir$adotdesktop"
 fi
 
