@@ -13,11 +13,11 @@ fi
 chmod +x $filename
 
 #AppImage working dir
-awd=$(pwd)
+awd="$(pwd)"
 
 #Making icon dir
 icond=$awd/appimage_icons
-mkdir -p $icond
+mkdir -p "$icond"
 
 echo ""
 echo "Extracting appimage..."
@@ -44,10 +44,10 @@ else
 	if [[ -L "$icon" ]]
 	then
 	 #echo "icon was a symbolic link"
-	 cp -H $icon $icond/
+	 cp -H $icon "$icond/"
 	else
 	 #echo "icon was not a symbolic link"
-	 cp $icon $icond/
+	 cp $icon "$icond/"
 	fi
 fi
 
